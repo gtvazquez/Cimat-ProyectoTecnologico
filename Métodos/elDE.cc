@@ -14,8 +14,8 @@ int ng_A[28]={1,1,1,2,2,1,1,1,1,1,1,2,3,1,1,1,1,2,2,2,2,3,1,1,1,1,2,2}; // ng_A 
 int nh_A[28]={1,1,1,1,1,6,2,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // nh_A denotes the number of equality constraints of fi
 int nr_A[28]={100,100,100,10,10,20,50,100,10,100,100,100,100,100,100,100,100,100,50,100,100,100,100,100,100,100,100,50}; // nr_A denotes the range of fi
 
-extern bool overwrite; extern bool overwrite_f; extern 
-bool overwrite_div; extern bool overwrite_sr;
+extern bool overwrite; extern bool overwrite_f;
+extern bool overwrite_div; extern bool overwrite_sr; extern bool overwrite_sd; 
 
 elDE::elDE(int func_num, int dimension, int population_size, double F, double CR, double t_FEs, int seed, std::string method_name)
 {
@@ -51,6 +51,7 @@ elDE::elDE(int func_num, int dimension, int population_size, double F, double CR
 
     mean_fi  = (double *) malloc(sizeof(double)*4000);
     mean_diversity_i  = (double *) malloc(sizeof(double)*4000);
+    sd_i = (double *) malloc(sizeof(double)*4000*dimension);
     SR = (double *) malloc(sizeof(double)*4000);
 
 };
@@ -60,7 +61,7 @@ elDE::~elDE()
     free(f); free(x); free(g); free(h); free(phi);
     free(f_offspring); free(x_offspring); free(g_offspring); free(h_offspring); free(phi_offspring);
     free(g_best_f); free(h_best_f); free(best_x);
-    free(mean_fi); free(mean_diversity_i); free(SR);
+    free(mean_fi); free(mean_diversity_i); free(SR); free(sd_i);
 };
 
 void elDE::create_population()
@@ -295,7 +296,33 @@ void elDE::write()
         output<<"SR"<<i<<": "<<SR[i]<<"\n";
     
     output.close();
-    
+
+
+
+
+
+    name = "Result/SD/"+method_name+"_"+std::to_string(func_num)+"_"+std::to_string(dimension)+".txt";
+    if(overwrite_sd)
+    {
+        output.open(name, std::ios_base::app);
+        output<<"\n";
+    }
+    else{
+        output.open(name);
+        output<<4000<<"\n\n";
+        overwrite_sd = true;
+    }
+
+    for (int i = 0; i < 4000; i++)
+    {
+        output<<"SD"<<i<<"\t";
+        for (int j = 0; j < dimension; j++)
+            output<<"x"<<j<<": "<<sd_i[dimension*i+j]<<"  ";
+        output<<"\n";
+    }
+    output.close();
+
+        
 };
 
 
@@ -305,7 +332,7 @@ void elDE::run()
     create_population();
     selection(0);
     update_eps_level();
-    mean_f(k); mean_diversity(k); sr(k); k++;
+    mean_f(k); mean_diversity(k); sr(k);sd(k); k++;
 
     best_f = f[0]; phi_ = phi[0]; 
     update_best();
@@ -317,7 +344,7 @@ void elDE::run()
         replacement();
         selection(1);
         update_eps_level();
-        mean_f(k); mean_diversity(k);sr(k); k++;
+        mean_f(k); mean_diversity(k);sr(k); sd(k); k++;
         FEs += population_size;
     }
     
@@ -405,23 +432,31 @@ void elDE::mean_f(int k)
 
 void elDE::mean_diversity(int k)
 {
-    int index = 0;
+    double * aux_diversity = (double *)malloc(sizeof(double)*population_size);
+    double   prev_diversity;
+    for (int i = 0; i < population_size; i++)
+        aux_diversity [i] = 1;
 
-    for (int i = 1; i < population_size; i++)
-        if (comparate_interval(f[i],f[index],phi[i],phi[index]))
-            index = i;
-    
-    double mean = 0;
-    
     for (int i = 0; i < population_size; i++)
     {
-        mean += distance(x, index, i);
-    }    
-
+        for (int j = i+1; j < population_size; j++)
+        {
+            prev_diversity = distance(x, i, j);
+            if(prev_diversity < aux_diversity[i])
+            {
+                aux_diversity [i] = aux_diversity [j] = prev_diversity;
+            }
+        }    
+    }
+       
+    double mean = 0;
+    for (int i = 0; i < population_size; i++)
+        mean += aux_diversity[i];
+        
     mean /= population_size;
 
     mean_diversity_i[k] = mean;
-    
+    free(aux_diversity);
 };
 
 
@@ -431,11 +466,38 @@ void elDE::sr(int k)
     
     for (int i = 0; i < population_size; i++)
         if(phi[i] <= eps)
-        {
             count += 1.0;
-        }
     
     count /= population_size;
 
     SR[k] = count*100;
+};
+
+
+
+void elDE::sd(int k)
+{
+    double sum;
+
+    for (int i = 0; i < dimension; i++)
+    {
+        sd_i [k*dimension+i] = 0;
+        for (int j = 0; j < population_size; j++)
+            sd_i [k*dimension+i] += x[dimension*j+i];
+    }
+
+    for (int i = 0; i < dimension; i++)
+        sd_i[k*dimension+i] /= population_size; 
+    
+
+
+    for (int i = 0; i < dimension; i++)
+    {
+        sum = 0;
+        for (int j = 0; j < population_size; j++)
+            sum +=  std::pow(sd_i[k*dimension+i]-x[dimension*j+i], 2);
+        
+        sd_i[k*dimension + i] = std::sqrt(sum /population_size);
+    }
+    
 };

@@ -1,9 +1,9 @@
-Best:   3e-05
-Median: 0.041647
+Best:   0
+Median: 0.023191
 c:      [0,0,0]
 v:      0
-Mean:   0.393561
-Worst:  4.0572
-STD:    1.075
+Mean:   0.406379
+Worst:  4.00309
+STD:    1.07225
 SR:     100
 vio:    0

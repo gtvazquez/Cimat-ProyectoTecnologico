@@ -37,6 +37,7 @@ protected:
     double *mean_fi;
     double *mean_diversity_i;
     double *SR;
+    double *sd_i;
 
     // Statement of functions
     void create_population();
@@ -53,7 +54,9 @@ protected:
     double distance(double*,int, int);
     void mean_f(int);
     void mean_diversity(int);
-    void sr(int); 
+    void sr(int);
+    void sd(int);
+
     virtual void mutation();
     virtual void crossover();
     virtual void selection(bool);

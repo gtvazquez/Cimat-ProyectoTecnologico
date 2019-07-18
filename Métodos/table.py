@@ -1,6 +1,6 @@
 import sys
 
-names = ["elDE", "elDE_SHADE", "elDE_EDM"]
+names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2"]
 
 method  = names[int(sys.argv[1])-1]
 dimension = int(sys.argv[2])

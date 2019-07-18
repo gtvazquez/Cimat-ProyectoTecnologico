@@ -1,9 +1,9 @@
 Best:   13.5728
-Median: 13.7323
+Median: 13.7569
 c:      [0,0,0]
 v:      0
-Mean:   14.0033
-Worst:  15.9192
-STD:    0.65274
+Mean:   13.908
+Worst:  14.9595
+STD:    0.355999
 SR:     100
 vio:    0

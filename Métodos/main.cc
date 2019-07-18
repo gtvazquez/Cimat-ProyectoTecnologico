@@ -1,6 +1,7 @@
 #include "elDE.h"
 #include "elDE_SHADE.h"
 #include "elDE_EDM.h"
+#include "elDE_EDM_v2.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -68,6 +69,13 @@ int main(int argc, char const **argv)
                 delete object;
                 overwrite = true;
             }break;
+
+            case 4:
+                //Argumentos : Número de la función, Dimensión, F, CR, t_FEs
+                elDE * object = new elDE_EDM_v2(atoi(argv[2]),atoi(argv[3]),atoi(argv[3])*5,atof(argv[4]),prime[i], get_name(atoi(argv[1])));
+                object->run();
+                delete object;
+                overwrite = true;
         }
     }
     //Obtenemos los estadísticos con los cuales se comparan
@@ -331,30 +339,59 @@ void graphs(int method, int func_num, int dimension)
     output.close();
     free(mean_sr);
 
+
+
+
+
+    // Mean SD
+    name = "Result/SD/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    input.open(name);
+
+    input >> length;
+    double *mean_sd = (double *)malloc(sizeof(double)*length*dimension); for (int i = 0; i < length*dimension; i++) mean_sd[i] = 0;
+
+    for (int i = 0; i < 25; i++)
+    {
+        for (int j = 0; j < length; j++)
+        {
+            input >> trash;
+            for (int k = 0; k < dimension; k++)
+            {
+                input >> trash >> value;
+                mean_sd[dimension*j+k] += value;
+            }   
+        }
+    }
+
+    for (int i = 0; i < length*dimension; i++)
+        mean_sd [i] /= 25;
+    
+    input.close();
+    
+
+    name = "Result/SD/Resumen_"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    output.open(name);
+
+    for (int  i = 0; i < length; i++)
+    {
+        output<<"Mean_SD"<<i<<"   ";
+        for (int j = 0; j < dimension; j++)
+            output<<"x"<<j<<":  "<<mean_sd[dimension*i+j]<<"  ";    
+        output<<"\n";
+    }
+
+    output.close();
+
+
+    free(mean_sd);
+
+
 };
 
 std::string get_name(int method)
 {
-    string name;
-
-    switch (method)
-    {
-    case 1:
-        name = "elDE";
-        break;
-    
-    case 2:
-        name = "elDE_SHADE";
-        break;
-
-    case 3:
-        name = "elDE_EDM";
-        break;
-
-    default:
-        break;
-    }
-    return name;
+    string list[] = {"elDE","elDE_SHADE","elDE_EDM", "elDE_EDM_v2" };
+    return list[method -1];
 };
 
 

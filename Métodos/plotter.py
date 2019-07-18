@@ -3,7 +3,7 @@ import sys
 
 
 typeStatistics = ["Mean f", "Mean Diversity", "SR"]
-names = ["elDE", "elDE_EDM", "elDE_SHADE"]
+names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2"]
 
 
 for statistics in typeStatistics:

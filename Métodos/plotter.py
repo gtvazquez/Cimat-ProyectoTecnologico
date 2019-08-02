@@ -1,3 +1,7 @@
+### To Run : python3  plotter.py a b c where ´a´ is the function number, ´b´ represent the dimension  and ´c´ max generations
+# python3 plotter.py 1 10 1000
+
+
 import matplotlib.pyplot as plt
 import sys
 
@@ -7,7 +11,7 @@ names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2"]
 
 
 for statistics in typeStatistics:
-  plt.title(statistics)
+  plt.title(statistics+sys.argv[1])
   plt.ylabel(r'$f( \overrightarrow{x})$')
   plt.xlabel('iterations')
 
@@ -36,8 +40,3 @@ for statistics in typeStatistics:
   plt.legend( loc = 'upper right');
   plt.savefig(nameOutout)
   plt.close()
-
-
-
-  ### To Run : python3  plotter.py a b c where ´a´ is the number of function, ´b´ represent the dimension  and ´c´ max generations
-  ### python3 plotter.py 1 10 1000

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include <iostream>
 
 void cec17_test_COP(double *x, double *f, double *g,double *h, int nx, int mx,int func_num);
 
@@ -35,6 +36,7 @@ elDE::elDE(int func_num, int dimension, int population_size, double F, double CR
 
     FEs = 0;
     maxFEs = 20000*dimension;
+    iterations = maxFEs / population_size;
     this->t_FEs  = int( double(maxFEs)* t_FEs );
 
     srand (seed);
@@ -49,10 +51,10 @@ elDE::elDE(int func_num, int dimension, int population_size, double F, double CR
     h_best_f = (double *) malloc(sizeof(double)*nh_A[func_num-1]);
     best_x   = (double *) malloc(sizeof(double)*dimension);
 
-    mean_fi  = (double *) malloc(sizeof(double)*4000);
-    mean_diversity_i  = (double *) malloc(sizeof(double)*4000);
-    sd_i = (double *) malloc(sizeof(double)*4000*dimension);
-    SR = (double *) malloc(sizeof(double)*4000);
+    mean_fi  = (double *) malloc(sizeof(double)*iterations);
+    mean_diversity_i  = (double *) malloc(sizeof(double)*iterations);
+    sd_i = (double *) malloc(sizeof(double)*iterations*dimension);
+    SR = (double *) malloc(sizeof(double)*iterations);
 
 };
 
@@ -103,7 +105,7 @@ bool elDE::comparate_interval(double f_x, double f_y, double phi_x, double phi_y
 {
     if( (phi_x <= eps_level and phi_y <= eps_level) or (phi_x == phi_y) )
     {
-        if (f_x < f_y)
+        if (f_x <= f_y)
             return true;
         else
             return false;
@@ -120,9 +122,9 @@ bool elDE::comparate_interval(double f_x, double f_y, double phi_x, double phi_y
 void elDE::DE_rand_1_bin(int index, double F_)
 {
     int r1, r2, r3, j;
-    r1 = (int)(randUniform()*population_size);
-    do {r2 = (int)(randUniform()*population_size); } while (r1 ==r2);
-    do {r3 = (int)(randUniform()*population_size); } while (r3 ==r1 and r3 ==r2);
+    do {r1 = (int)(randUniform()*population_size); } while(r1 == index);
+    do {r2 = (int)(randUniform()*population_size); } while (r1 == r2 or r2 == index);
+    do {r3 = (int)(randUniform()*population_size); } while (r3 == r1 or r3 ==r2  or r3 == index);
 
     for (int  i = 0; i < dimension; i++)
     {
@@ -144,7 +146,7 @@ void elDE::update_eps_level()
             aux_phi [i] = phi[i];
         
         std::sort(aux_phi, aux_phi+population_size);
-        eps_level = aux_phi[int(0.8*population_size)] * ( 1 - double(FEs)/t_FEs);
+        eps_level = aux_phi[int(0.8*population_size)] *  std::pow(( 1 - double(FEs)/t_FEs), 1 );
         
         free(aux_phi);
     }
@@ -202,16 +204,13 @@ void elDE::update_best()
             
         }
     }
-
-    //if(best_f != aux_best_f)
-        //printf("f(x) : %.2f     phi:%.2f     FEs:%d\n", best_f,phi_,FEs);
     
 };
 
 
 void elDE::write()
 {
-    std::string name = "Result/"+method_name+std::to_string(func_num)+"_"+std::to_string(dimension)+".txt";
+    std::string name = "Result/"+method_name+"_"+std::to_string(func_num)+"_"+std::to_string(dimension)+".txt";
     std::ofstream output;
     if(overwrite)
     {
@@ -246,11 +245,11 @@ void elDE::write()
     }
     else{
         output.open(name);
-        output<<4000<<"\n\n";
+        output<<iterations<<"\n\n";
         overwrite_f = true;
     }
 
-    for (int i = 0; i < 4000; i++)
+    for (int i = 0; i < iterations; i++)
         output<<"Mean_f"<<i<<": "<<mean_fi[i]<<"\n";
     
     output.close();
@@ -266,11 +265,11 @@ void elDE::write()
     }   
     else{
         output.open(name);
-        output<<4000<<"\n\n";
+        output<<iterations<<"\n\n";
         overwrite_div = true;
     }
 
-    for (int i = 0; i < 4000; i++)
+    for (int i = 0; i < iterations; i++)
         output<<"Mean_Div"<<i<<": "<<mean_diversity_i[i]<<"\n";
     
     output.close();
@@ -288,20 +287,18 @@ void elDE::write()
     }
     else{
         output.open(name);
-        output<<4000<<"\n\n";
+        output<<iterations<<"\n\n";
         overwrite_sr = true;
     }
 
-    for (int i = 0; i < 4000; i++)
+    for (int i = 0; i < iterations; i++)
         output<<"SR"<<i<<": "<<SR[i]<<"\n";
     
     output.close();
 
 
 
-
-
-    name = "Result/SD/"+method_name+"_"+std::to_string(func_num)+"_"+std::to_string(dimension)+".txt";
+    name = "Result/SD/" + method_name + "_"+std::to_string(func_num)+"_"+std::to_string(dimension)+".txt";
     if(overwrite_sd)
     {
         output.open(name, std::ios_base::app);
@@ -309,11 +306,11 @@ void elDE::write()
     }
     else{
         output.open(name);
-        output<<4000<<"\n\n";
+        output<<iterations<<"\n\n";
         overwrite_sd = true;
     }
 
-    for (int i = 0; i < 4000; i++)
+    for (int i = 0; i < iterations; i++)
     {
         output<<"SD"<<i<<"\t";
         for (int j = 0; j < dimension; j++)
@@ -324,6 +321,7 @@ void elDE::write()
 
         
 };
+
 
 
 void elDE::run()
@@ -346,10 +344,12 @@ void elDE::run()
         update_eps_level();
         mean_f(k); mean_diversity(k);sr(k); sd(k); k++;
         FEs += population_size;
+        //if(FEs > maxFEs*0.995)
+        //    printPopulation();
     }
-    
     update_best();
     write();
+    //getchar();
 };
 
 
@@ -359,10 +359,11 @@ void elDE::mutation()
     for (int i = 0; i < population_size; i++)
         DE_rand_1_bin(i,F);
 
-    cec17_test_COP(x_offspring,f_offspring,g_offspring,h_offspring,dimension,population_size,func_num);
-        for (int  i = 0; i < population_size; i++)
-            phi_offspring[i] = constraint_violation(i,g_offspring,h_offspring);
+    //cec17_test_COP(x_offspring,f_offspring,g_offspring,h_offspring,dimension,population_size,func_num);
+    //    for (int  i = 0; i < population_size; i++)
+    //        phi_offspring[i] = constraint_violation(i,g_offspring,h_offspring);
 };
+
 
 void elDE::crossover()
 {
@@ -382,8 +383,6 @@ void elDE::crossover()
             phi_offspring[i] = constraint_violation(i,g_offspring,h_offspring);
 };
 
-
-
 void elDE::replacement()
 {
     for (int i = 0; i < population_size; i++)
@@ -397,7 +396,7 @@ void elDE::replacement()
             for (int j = 0; j < ng_A[func_num-1]; j++)
                 g[ng_A[func_num-1] * i  + j] = g_offspring[ng_A[func_num-1] * i  + j];
             for (int j = 0; j < nh_A[func_num-1]; j++)
-                h[nh_A[func_num-1] * i  + j] = h_offspring[nh_A[func_num-1] * i  + j];       
+                h[nh_A[func_num-1] * i  + j] = h_offspring[nh_A[func_num-1] * i  + j];
         }
     }
 };
@@ -429,6 +428,7 @@ void elDE::mean_f(int k)
     mean /= population_size;
     mean_fi[k] = mean;
 };
+
 
 void elDE::mean_diversity(int k)
 {
@@ -487,8 +487,8 @@ void elDE::sd(int k)
     }
 
     for (int i = 0; i < dimension; i++)
-        sd_i[k*dimension+i] /= population_size; 
-    
+        if(sd_i[k*dimension+i] != 0)
+            sd_i[k*dimension+i] /= population_size; 
 
 
     for (int i = 0; i < dimension; i++)
@@ -496,8 +496,20 @@ void elDE::sd(int k)
         sum = 0;
         for (int j = 0; j < population_size; j++)
             sum +=  std::pow(sd_i[k*dimension+i]-x[dimension*j+i], 2);
-        
-        sd_i[k*dimension + i] = std::sqrt(sum /population_size);
+        if(sd_i[k*dimension+i] != 0)
+            sd_i[k*dimension + i] = std::sqrt(sum /population_size);
     }
     
+};
+
+
+
+void elDE::printPopulation()
+{
+    for (int i = 0; i < population_size; i++)
+    {
+        for (int j = 0; j < dimension; j++)
+            std::cout << "x" <<j<<":  "<<x[dimension*i+j]<<"  ";
+        std::cout<<"   f:"<<f[i]<<"    Phi:"<<phi[i]<<std::endl;
+    }std::cout  << std::endl;
 };

@@ -79,148 +79,159 @@ void elDE_EDM_v2::crossover()
 
 
 
-
-
-
-
-
-
-
-
-
-
 void elDE_EDM_v2::selection(bool flag)
 {
-    if(!flag) // Elite set Population and initialize Do
-    {
-        for (int i = 0; i < population_size; i++)
+    //if(FEs <= maxFEs*0.3)
+    //{
+        if(!flag) // Elite set Population and initialize Do
         {
-            for (int j = 0; j < dimension; j++)
-                elite[dimension*i + j] = x[dimension*i + j];
-            
-            f_elite [i] = f [i];
-            phi_elite[i] = phi[i];
-
-            for (int j = 0; j < ng_A[func_num-1]; j++)
-                g_elite[ng_A[func_num-1] * i  + j] = g[ng_A[func_num-1] * i  + j];
-            for (int j = 0; j < nh_A[func_num-1]; j++)
-                h_elite[nh_A[func_num-1] * i  + j] = h[nh_A[func_num-1] * i  + j];
-
-        }
-
-
-        mean_diversity(0);
-        Di = mean_diversity_i[0];
-        Dt = Di;
-        
-    }
-    else 
-    {
-        for (int i = 0; i < population_size; i++)
-        {
-            if(!comparate_interval(f_offspring[i],f_elite[i], phi_offspring[i],phi_elite[i]))
+            for (int i = 0; i < population_size; i++)
             {
-                f_elite[i]   =  f_offspring[i];
-                phi_elite[i] = phi_offspring[i];
-                for (int  j = 0; j < dimension; j++)
-                    elite[dimension*i+j] = x_offspring[dimension*i+j];
+                for (int j = 0; j < dimension; j++)
+                    elite[dimension*i + j] = x[dimension*i + j];
+                
+                f_elite [i] = f [i];
+                phi_elite[i] = phi[i];
+
                 for (int j = 0; j < ng_A[func_num-1]; j++)
-                    g_elite[ng_A[func_num-1] * i  + j] = g_offspring[ng_A[func_num-1] * i  + j];
+                    g_elite[ng_A[func_num-1] * i  + j] = g[ng_A[func_num-1] * i  + j];
                 for (int j = 0; j < nh_A[func_num-1]; j++)
-                    h_elite[nh_A[func_num-1] * i  + j] = h_offspring[nh_A[func_num-1] * i  + j];       
+                    h_elite[nh_A[func_num-1] * i  + j] = h[nh_A[func_num-1] * i  + j];
+
+            }
+
+
+            mean_diversity(0);
+            Di = mean_diversity_i[0];
+            Dt = Di;
+            
+        }
+        else 
+        {
+            for (int i = 0; i < population_size; i++)
+            {
+                if(!comparate_interval(f_offspring[i],f_elite[i], phi_offspring[i],phi_elite[i]))
+                {
+                    f_elite[i]   =  f_offspring[i];
+                    phi_elite[i] = phi_offspring[i];
+                    for (int  j = 0; j < dimension; j++)
+                        elite[dimension*i+j] = x_offspring[dimension*i+j];
+                    for (int j = 0; j < ng_A[func_num-1]; j++)
+                        g_elite[ng_A[func_num-1] * i  + j] = g_offspring[ng_A[func_num-1] * i  + j];
+                    for (int j = 0; j < nh_A[func_num-1]; j++)
+                        h_elite[nh_A[func_num-1] * i  + j] = h_offspring[nh_A[func_num-1] * i  + j];       
+                }
             }
         }
-    }
+    //}
+    //else
+    //    elDE::selection(flag);
+    
     
 };
 
 
 void elDE_EDM_v2::updateDt()
 {
-    double cte = std::pow(0.1/Di, 1.0/2000.0);
-
-    if(FEs < 2000)
-        Dt = Dt * cte;
+    if(FEs < (maxFEs*0.5) )
+        Dt = Dt * std::pow(0.00001/Di, 1.0/(iterations*0.5));
+    //if(FEs < (maxFEs*0.5) )
+    //    Dt = Dt * std::pow(0.001/Di, 1.0/(iterations*0.5));
     else
-        Dt= Dt * std::pow(0.001,1.0/2000.0);
+            Dt = Dt *  std::pow(0.0001, 1.0/(iterations/0.5)); //Until 1e-9
 
+    /*
+    double tp = 0.5, ym = 1e-5 , yf = 1e-9;
+    double xi = FEs / population_size;
+
+    if(FEs < (maxFEs * tp))
+        Dt = ((ym - Di)/(iterations*tp))* xi + Di;
+    else
+        Dt = ((yf-ym)/((1.0-tp)*iterations))* (xi-(maxFEs*tp)/population_size) + ym;
+    */
 };
+
+
 
 
 void elDE_EDM_v2::replacement()
 {
-    updateDt();
-    for (int i = 0; i < population_size * 3; i++)
-        list.push_back(i);
+    //if(FEs <= maxFEs*0.3){
+        updateDt();
+        for (int i = 0; i < population_size * 3; i++)
+            list.push_back(i);
 
 
-    int index, realIndex;
-    setUnionToCurrent();
+        int index, realIndex;
+        setUnionToCurrent();
 
-    while(selected.size() < population_size && list.size() > 0 )
-    {
-        index = 0;
-        for (int i = 1; i < list.size(); i++)
-            if (comparate_interval(f_current[list[i]], f_current[list[index]], phi_current[list[i]], phi_current[list[index]]))
-                index  = i;
-        selected.push_back(list[index]); realIndex = list[index];    
-        list.erase(list.begin() + index);
-
-        for (int i = 0; i < list.size(); i++)
+        while(selected.size() < population_size && list.size() > 0 )
         {
-            if(distance(current, realIndex, list[i]) < Dt )
+            index = 0;
+            for (int i = 1; i < list.size(); i++)
+                if (comparate_interval(f_current[list[i]], f_current[list[index]], phi_current[list[i]], phi_current[list[index]]))
+                    index  = i;
+            selected.push_back(list[index]); realIndex = list[index];    
+            list.erase(list.begin() + index);
+
+            for (int i = 0; i < list.size(); i++)
             {
-                penalized.push_back(list[i]);
-                list.erase(list.begin() + i );
-                i--;
+                if(distance(current, realIndex, list[i]) < Dt )
+                {
+                    penalized.push_back(list[i]);
+                    list.erase(list.begin() + i );
+                    i--;
+                }
             }
+            
         }
-        
-    }
 
 
-    std::vector <double> distance_i(penalized.size(), -1);
-    double indexBest, length;
+        std::vector <double> distance_i(penalized.size(), -1);
+        double indexBest, length;
 
-    while (selected.size() < population_size)
-    {
-
-        for (int i = 0; i < penalized.size(); i++)
+        while (selected.size() < population_size)
         {
-            distance_i [i] = distance(current, penalized[i], selected[0]); 
-            for (int j = 1; j < selected.size(); j++)
-                if(distance(current, penalized[i], selected[j]) <  distance_i[i])
-                    distance_i [i] = distance(current, penalized[i], selected[j]);
+
+            for (int i = 0; i < penalized.size(); i++)
+            {
+                distance_i [i] = distance(current, penalized[i], selected[0]); 
+                for (int j = 1; j < selected.size(); j++)
+                    if(distance(current, penalized[i], selected[j]) <  distance_i[i])
+                        distance_i [i] = distance(current, penalized[i], selected[j]);
+            }
+
+
+            index = 0;
+            length = penalized.size();
+
+            for (int i = 0; i < length; i++)
+                if(distance_i[i] > distance_i[index])
+                    index = i;
+            
+            selected.push_back(penalized[index]);
+            penalized.erase(penalized.begin() + index);
+
         }
 
+        // Copy Selected to Xg+1
+        for (int i = 0; i < population_size; i++)
+        {
+            f[i] = f_current[selected[i]];
+            phi[i] = phi_current[selected[i]];
 
-        index = 0;
-        length = penalized.size();
+            for (int j = 0; j < dimension; j++)
+                x[dimension*i + j] = current[dimension*selected[i] + j];
+            for (int j = 0; j < ng_A[func_num-1]; j++)
+                g[ng_A[func_num-1] * i  + j] = g_current[ng_A[func_num-1] * selected[i] + j];
+            for (int j = 0; j < nh_A[func_num-1]; j++)
+                h[nh_A[func_num-1] * i  + j] = h_current[nh_A[func_num-1] * selected[i] + j];
+        }
 
-        for (int i = 0; i < length; i++)
-            if(distance_i[i] > distance_i[index])
-                index = i;
-        
-        selected.push_back(penalized[index]);
-        penalized.erase(penalized.begin() + index);
+        selected.clear(); penalized.clear(); list.clear();
+    //}else
+        //elDE::replacement();
 
-    }
-
-    // Copy Selected to Xg+1
-    for (int i = 0; i < population_size; i++)
-    {
-        f[i] = f_current[selected[i]];
-        phi[i] = phi_current[selected[i]];
-
-        for (int j = 0; j < dimension; j++)
-            x[dimension*i + j] = current[dimension*selected[i] + j];
-        for (int j = 0; j < ng_A[func_num-1]; j++)
-            g[ng_A[func_num-1] * i  + j] = g_current[ng_A[func_num-1] * selected[i] + j];
-        for (int j = 0; j < nh_A[func_num-1]; j++)
-            h[nh_A[func_num-1] * i  + j] = h_current[nh_A[func_num-1] * selected[i] + j];
-    }
-
-    selected.clear(); penalized.clear(); list.clear();
     
 };
 

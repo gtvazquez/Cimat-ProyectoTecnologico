@@ -7,7 +7,6 @@ using namespace std;
 
 int main(int argc, char const **argv)
 {
-    string command;
     string method = argv[1];
     string dimension = argv[2];
     string F;
@@ -20,11 +19,12 @@ int main(int argc, char const **argv)
     #pragma omp parallel for
     for (int i = 1; i < 29; i++)
     {
+        string command;
         if(method == "1")
-            command = "./a.out " + method + " "  + to_string(i) +" "+ dimension + " " + F + " " + CR + " " + tFEs;
+            command = "./executable " + method + " "  + to_string(i) +" "+ dimension + " " + F + " " + CR + " " + tFEs;
         else
-            command = "./a.out " + method + " "  + to_string(i) +" "+ dimension + " " + tFEs;
-        system(command.c_str());
+            command = "./executable " + method + " "  + to_string(i) +" "+ dimension + " " + tFEs;
+        bool flag = system(command.c_str());
     }
         
 

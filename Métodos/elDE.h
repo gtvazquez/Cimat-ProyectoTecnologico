@@ -17,6 +17,7 @@ protected:
     double eps_level;
     int FEs;
     int maxFEs;
+    int iterations;
     int t_FEs;
     double phi_theta;
     double *f;
@@ -56,6 +57,7 @@ protected:
     void mean_diversity(int);
     void sr(int);
     void sd(int);
+    void printPopulation();
 
     virtual void mutation();
     virtual void crossover();

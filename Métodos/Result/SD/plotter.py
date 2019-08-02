@@ -1,8 +1,10 @@
+### To Run : "python3 a b c" , where 'a' is the method, 'b' is the function number and 'c' represent de dimension to the function    
+
 import matplotlib.pyplot as plt
 import sys
 
 
-names = ["elDE", "elDE_EDM", "elDE_SHADE"]
+names = ["elDE", "elDE_SHADE","elDE_EDM", "elDE_EDM_v2"]
 
 method = names[int(sys.argv[1])-1]
 func_num = sys.argv[2]

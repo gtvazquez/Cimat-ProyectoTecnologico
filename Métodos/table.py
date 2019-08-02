@@ -1,3 +1,6 @@
+### To Run: "python3 a b c" where  'a' is the method number, 'b' represent the  dimension and  'c' table divisions
+### python3 1 10 7
+
 import sys
 
 names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2"]

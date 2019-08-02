@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <unistd.h>
 
+#define runs 25
+
 using namespace std;
 
 struct datum
@@ -22,8 +24,8 @@ struct datum
 };
 
 extern bool overwrite;
-double prime [25] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
-static datum data[25];
+double prime [runs] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+static datum data[runs];
 
 
 // Statement of functions
@@ -37,8 +39,8 @@ bool compareInterval_2(datum, datum); // Sort feasible solutions according to th
 int main(int argc, char const **argv)
 {
     overwrite = false;      
-    //Ejecutar el método 25 veces
-    for (int i = 0; i < 25; i++)
+    //Ejecutar el método runs veces
+    for (int i = 0; i < runs; i++)
     {
         switch (atoi(argv[1])) 
         {
@@ -63,7 +65,7 @@ int main(int argc, char const **argv)
 
             case 3:
             {
-                //Argumentos : Número de la función, Dimensión, F, CR, t_FEs
+                //Argumentos : Número de la función, Dimensión, t_FEs
                 elDE * object = new elDE_EDM(atoi(argv[2]),atoi(argv[3]),atoi(argv[3])*5,atof(argv[4]),prime[i], get_name(atoi(argv[1])));
                 object->run();
                 delete object;
@@ -71,7 +73,7 @@ int main(int argc, char const **argv)
             }break;
 
             case 4:
-                //Argumentos : Número de la función, Dimensión, F, CR, t_FEs
+                //Argumentos : Número de la función, Dimensión, t_FEs
                 elDE * object = new elDE_EDM_v2(atoi(argv[2]),atoi(argv[3]),atoi(argv[3])*5,atof(argv[4]),prime[i], get_name(atoi(argv[1])));
                 object->run();
                 delete object;
@@ -95,7 +97,7 @@ void statistics(int method, int func_num, int dimension)
 
     sub_name = get_name(method);
 
-    name = "Result/"+sub_name+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    name = "Result/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
     input.open(name);
     int len_g, len_h;
     double val;
@@ -103,7 +105,7 @@ void statistics(int method, int func_num, int dimension)
 
     input >> len_g >> len_h;
     
-    for (int  i = 0; i < 25; i++)
+    for (int  i = 0; i < runs; i++)
     {
         datum object;
 
@@ -128,7 +130,7 @@ void statistics(int method, int func_num, int dimension)
     input.close();
 
     // Get c foreach run
-    for (int  i = 0; i < 25; i++)
+    for (int  i = 0; i < runs; i++)
     {
         data[i].c.resize(3);
         for (int k = 0; k < len_g; k++)
@@ -158,7 +160,7 @@ void statistics(int method, int func_num, int dimension)
         
     }
     //Get v for each run
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         data[i].v = 0.0;
         
@@ -174,38 +176,38 @@ void statistics(int method, int func_num, int dimension)
     }
 
 
-    sort(data,data+25, compareInterval_1);
+    sort(data,data+runs, compareInterval_1);
     int index = 0;
-    while(index < 25 and data[index].v == 0)
+    while(index < runs and data[index].v == 0)
         index++;
     sort(data,data+index, compareInterval_2);
 
     double mean = 0;
     double worst;
     double best;
-    double SR = (double(index)/25) * 100;
+    double SR = (double(index)/runs) * 100;
     double vio = 0;  
     double sd = 0;
  
     // Get mean and vio
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         mean += data[i].f;
         vio  += data[i].v;
     }
     
-    mean /= 25;
-    vio  /= 25;
+    mean /= runs;
+    vio  /= runs;
 
 
     // Get best and worst
-    worst = data[24].f;
+    worst = data[runs-1].f;
     best  = data[0].f;
 
     // Get SD
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
         sd += pow(data[i].f - mean , 2);
-    sd = sqrt(sd/25);
+    sd = sqrt(sd/runs);
 
     ofstream output;
     string name_file = "Result/Table/" + sub_name + "_" + to_string(func_num) + "_" + to_string(dimension)+".txt";
@@ -213,9 +215,9 @@ void statistics(int method, int func_num, int dimension)
 
 
     output<<"Best:   "<<best<<"\n";
-    output<<"Median: "<<data[12].f<<"\n";
-    output<<"c:      ["<<data[12].c[0]<<","<<data[12].c[1]<<","<<data[12].c[2]<<"]\n";
-    output<<"v:      "<<data[12].v<<"\n";
+    output<<"Median: "<<data[runs/2].f<<"\n";
+    output<<"c:      ["<<data[runs/2].c[0]<<","<<data[runs/2].c[1]<<","<<data[runs/2].c[2]<<"]\n";
+    output<<"v:      "<<data[runs/2].v<<"\n";
     output<<"Mean:   "<<mean<<"\n";
     output<<"Worst:  "<<worst<<"\n";
     output<<"STD:    "<<sd<<"\n";\
@@ -223,6 +225,9 @@ void statistics(int method, int func_num, int dimension)
     output<<"vio:    "<<vio<<"\n";     
 
     output.close();
+
+    name = "rm -f "+ name;
+    bool erase = system(name.c_str());
 };
 
 
@@ -232,6 +237,7 @@ void graphs(int method, int func_num, int dimension)
     ifstream input;
     string name;
     string sub_name;
+    bool erase;
 
     sub_name = get_name(method);
     
@@ -244,7 +250,7 @@ void graphs(int method, int func_num, int dimension)
     double *mean_f = (double *)malloc(sizeof(double)*length); for (int i = 0; i < length; i++) mean_f[i] = 0;
     double value; std::string trash;
 
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         for (int j = 0; j < length; j++)
         {
@@ -257,7 +263,7 @@ void graphs(int method, int func_num, int dimension)
 
 
     for (int i = 0; i < length; i++)
-        mean_f[i] /= 25.0;
+        mean_f[i] /= (runs*1.0);
     
     input.close();
 
@@ -272,7 +278,8 @@ void graphs(int method, int func_num, int dimension)
     free(mean_f);
 
 
-
+    name = "rm -f Result/Mean\\ f/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    erase = system(name.c_str());
 
     // Mean Mean Diversity
     name = "Result/Mean Diversity/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
@@ -281,7 +288,7 @@ void graphs(int method, int func_num, int dimension)
     input >> length;
     double *mean_div = (double *)malloc(sizeof(double)*length); for (int i = 0; i < length; i++) mean_div[i] = 0;
 
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         for (int j = 0; j < length; j++)
         {
@@ -291,7 +298,7 @@ void graphs(int method, int func_num, int dimension)
     }
 
     for (int i = 0; i < length; i++)
-        mean_div[i] /= 25.0;
+        mean_div[i] /= (runs*1.0);
     
     input.close();
 
@@ -304,7 +311,8 @@ void graphs(int method, int func_num, int dimension)
     output.close();
     free(mean_div);
 
-
+    name = "rm -f Result/Mean\\ Diversity/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    erase = system(name.c_str());
 
 
 
@@ -316,7 +324,7 @@ void graphs(int method, int func_num, int dimension)
     input >> length;
     double *mean_sr = (double *)malloc(sizeof(double)*length); for (int i = 0; i < length; i++) mean_sr[i] = 0;
 
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         for (int j = 0; j < length; j++)
         {
@@ -326,7 +334,7 @@ void graphs(int method, int func_num, int dimension)
     }
 
     for (int i = 0; i < length; i++)
-        mean_sr[i] /= 25.0;
+        mean_sr[i] /= (runs*1.0);
 
     input.close();
 
@@ -339,6 +347,8 @@ void graphs(int method, int func_num, int dimension)
     output.close();
     free(mean_sr);
 
+    name = "rm -f Result/SR/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    erase = system(name.c_str());
 
 
 
@@ -350,7 +360,7 @@ void graphs(int method, int func_num, int dimension)
     input >> length;
     double *mean_sd = (double *)malloc(sizeof(double)*length*dimension); for (int i = 0; i < length*dimension; i++) mean_sd[i] = 0;
 
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < runs; i++)
     {
         for (int j = 0; j < length; j++)
         {
@@ -364,7 +374,7 @@ void graphs(int method, int func_num, int dimension)
     }
 
     for (int i = 0; i < length*dimension; i++)
-        mean_sd [i] /= 25;
+        mean_sd [i] /= runs;
     
     input.close();
     
@@ -381,9 +391,10 @@ void graphs(int method, int func_num, int dimension)
     }
 
     output.close();
-
-
     free(mean_sd);
+
+    name = "rm -f Result/SD/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+    erase = system(name.c_str());
 
 
 };

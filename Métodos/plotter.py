@@ -7,7 +7,7 @@ import sys
 
 
 typeStatistics = ["Mean f", "Mean Diversity", "SR"]
-names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2"]
+names = ["elDE", "elDE_SHADE", "elDE_EDM", "elDE_EDM_v2","elDE_EDM_C"]
 
 
 for statistics in typeStatistics:
@@ -15,6 +15,8 @@ for statistics in typeStatistics:
   plt.ylabel(r'$f( \overrightarrow{x})$')
   plt.xlabel('iterations')
 
+  if statistics == "Mean Diversity":
+        names.append("Dt")
 
   for method in names:
     func_num = sys.argv[1]
@@ -35,6 +37,8 @@ for statistics in typeStatistics:
 
     plt.plot(Y1, X1 , label = method)
 
+  if statistics == "Mean Diversity":
+        names.remove("Dt")
 
   nameOutout = "Result/Graphs/"+func_num+"_"+dimension+"_"+statistics+".png"
   plt.legend( loc = 'upper right');

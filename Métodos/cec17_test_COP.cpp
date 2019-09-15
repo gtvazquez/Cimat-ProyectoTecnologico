@@ -609,12 +609,12 @@ void COP_15 (double *x, double *f, double *g, double *h, int nx, double *Os, dou
 {
 	int i;
     sr_func (x, z, nx, Os, Mr, 5.12/100.0, s_flag, r_flag); /* shift and rotate */
-    f[0] = z[0];
+    f[0] = abs(z[0]);
     for (i=1;i<nx; i++)
     {
-       if (f[0] < z[i])
+       if (f[0] < abs(z[i]))
        {
-           f[0] = z[i];
+           f[0] = abs(z[i]);
        }    
     }
 	h[0] = 0.0;

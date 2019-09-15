@@ -58,6 +58,7 @@ protected:
     void sr(int);
     void sd(int);
     void printPopulation();
+    double polynomial_mutation(double);
 
     virtual void mutation();
     virtual void crossover();

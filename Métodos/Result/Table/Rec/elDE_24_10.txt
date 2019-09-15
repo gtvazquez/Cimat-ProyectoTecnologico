@@ -1,0 +1,9 @@
+Best:   0
+Median: 0
+c:      [0,1,0]
+v:      0.5
+Mean:   0
+Worst:  0
+STD:    0
+SR:     0
+vio:    0.5

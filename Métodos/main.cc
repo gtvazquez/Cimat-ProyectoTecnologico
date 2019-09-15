@@ -2,6 +2,7 @@
 #include "elDE_SHADE.h"
 #include "elDE_EDM.h"
 #include "elDE_EDM_v2.h"
+#include "elDE_EDM_C.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <unistd.h>
+
 
 #define runs 25
 
@@ -24,9 +26,10 @@ struct datum
 };
 
 extern bool overwrite;
-double prime [runs] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+double prime [runs] = {3,2,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
 static datum data[runs];
-
+extern int kEval;
+extern double cte;
 
 // Statement of functions
 void statistics(int,int,int);
@@ -40,7 +43,7 @@ int main(int argc, char const **argv)
 {
     overwrite = false;      
     //Ejecutar el método runs veces
-    for (int i = 0; i < runs; i++)
+    for (int i = 0; i <runs; i++)
     {
         switch (atoi(argv[1])) 
         {
@@ -73,16 +76,28 @@ int main(int argc, char const **argv)
             }break;
 
             case 4:
+            {
                 //Argumentos : Número de la función, Dimensión, t_FEs
                 elDE * object = new elDE_EDM_v2(atoi(argv[2]),atoi(argv[3]),atoi(argv[3])*5,atof(argv[4]),prime[i], get_name(atoi(argv[1])));
                 object->run();
                 delete object;
                 overwrite = true;
+            
+            }break;
+
+            case 5:
+            {
+                //Argumentos : Número de la función, Dimensión, t_FEs, clusterSize
+                elDE * object = new elDE_EDM_C(atoi(argv[2]),atoi(argv[3]),atoi(argv[3])*5, atoi(argv[5]) ,atof(argv[4]),prime[i], get_name(atoi(argv[1])));
+                object->run();
+                delete object;
+                overwrite = true;
+            }break;
         }
     }
     //Obtenemos los estadísticos con los cuales se comparan
     statistics(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
-    graphs(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+    graphs(atoi(argv[1]), atoi(argv[2]), atoi(argv[3])); 
 
     return 0;
 }
@@ -309,10 +324,41 @@ void graphs(int method, int func_num, int dimension)
         output<<"Mean_Div"<<i<<": "<<mean_div[i]<<"\n";
 
     output.close();
+    
+
+    //Creamos un archivo el cual contenga la media diversidad promedio deseada
+    if(sub_name == "elDE_EDM_v2")
+    {
+        int maxFEs = dimension * kEval, FEs = dimension * 5, k  = 1 , iterations = maxFEs / FEs;
+        double Dt = mean_div[0], Di = mean_div[0]; 
+        while (k < iterations)
+        {
+            if(FEs < (maxFEs*cte) )
+                Dt = Dt * std::pow(0.00001/Di, 1.0/(iterations*cte));
+            else
+                Dt = Dt *  std::pow(0.0001, 1.0/(iterations/(1.0-cte))); //Until 1e-9
+            FEs += (dimension * 5);
+            mean_div[k] = Dt;
+            k ++;
+            
+        }
+        name = "Result/Mean Diversity/Resumen_Dt_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
+        output.open(name);
+    
+        for (int  i = 0; i < length; i++)
+            output<<"Mean_Div"<<i<<": "<<mean_div[i]<<"\n";
+
+        output.close();
+    }
+    //////
+
+    
+    
     free(mean_div);
 
     name = "rm -f Result/Mean\\ Diversity/"+sub_name+"_"+to_string(func_num)+"_"+to_string(dimension)+".txt";
     erase = system(name.c_str());
+
 
 
 
@@ -342,7 +388,7 @@ void graphs(int method, int func_num, int dimension)
     output.open(name);
 
     for (int  i = 0; i < length; i++)
-        output<<"Mean_SR"<<i<<": "<<mean_sr[i]<<"\n";
+        output<<"Mean_SR"<<i<<": "<<mean_sr[i]*100.0<<"\n";
 
     output.close();
     free(mean_sr);
@@ -401,7 +447,7 @@ void graphs(int method, int func_num, int dimension)
 
 std::string get_name(int method)
 {
-    string list[] = {"elDE","elDE_SHADE","elDE_EDM", "elDE_EDM_v2" };
+    string list[] = {"elDE","elDE_SHADE","elDE_EDM", "elDE_EDM_v2", "elDE_EDM_C" };
     return list[method -1];
 };
 

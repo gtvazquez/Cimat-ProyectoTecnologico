@@ -10,6 +10,7 @@
 #include <iostream>
 
 void cec17_test_COP(double *x, double *f, double *g,double *h, int nx, int mx,int func_num);
+using namespace std;
 
 int ng_A[28]={1,1,1,2,2,1,1,1,1,1,1,2,3,1,1,1,1,2,2,2,2,3,1,1,1,1,2,2}; // ng_A denotes the number of inequality constraints of fi
 int nh_A[28]={1,1,1,1,1,6,2,2,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}; // nh_A denotes the number of equality constraints of fi
@@ -17,6 +18,8 @@ int nr_A[28]={100,100,100,10,10,20,50,100,10,100,100,100,100,100,100,100,100,100
 
 extern bool overwrite; extern bool overwrite_f;
 extern bool overwrite_div; extern bool overwrite_sr; extern bool overwrite_sd; 
+extern int kEval;
+extern bool CR_s;
 
 elDE::elDE(int func_num, int dimension, int population_size, double F, double CR, double t_FEs, int seed, std::string method_name)
 {
@@ -35,7 +38,7 @@ elDE::elDE(int func_num, int dimension, int population_size, double F, double CR
     phi = (double *)malloc(sizeof(double)*population_size);
 
     FEs = 0;
-    maxFEs = 20000*dimension;
+    maxFEs = kEval*dimension;
     iterations = maxFEs / population_size;
     this->t_FEs  = int( double(maxFEs)* t_FEs );
 
@@ -85,17 +88,23 @@ void elDE::create_population()
 double elDE::constraint_violation(int index, double *g_, double *h_)
 {
     double max_g =  0;
-    double max_h = -1;
+    double max_h =  0;
     double max_;
 
-    for (int  j = 0; j < ng_A[func_num-1]; j++)
-        max_g = (max_g < g_[ng_A[func_num-1]*index + j]) ? g_[ng_A[func_num-1]*index + j] : max_g;
-    for (int j = 0; j < nh_A[func_num-1]; j++)
-        max_h = (max_h < std::abs(h_[nh_A[func_num-1]*index+j])) ? std::abs(h_[nh_A[func_num-1]*index+j]) : max_h;
+    for (int  j = 0; j < ng_A[func_num-1]; j++){
+        //max_g = (max_g < g_[ng_A[func_num-1]*index + j]) ? g_[ng_A[func_num-1]*index + j] : max_g;
+        if(g_[ng_A[func_num-1]*index + j] > 0)
+            max_g += g_[ng_A[func_num-1]*index + j];
+    }
+    for (int j = 0; j < nh_A[func_num-1]; j++){
+        //max_h = (max_h < std::abs(h_[nh_A[func_num-1]*index+j])) ? std::abs(h_[nh_A[func_num-1]*index+j]) : max_h;
+        max_h += std::abs(h_[nh_A[func_num-1]*index+j]);
+    }
     
-    max_h = (max_h <= eps ) ? 0 : max_h;
+    //max_h = (max_h <= eps ) ? 0 : max_h;
 
-    max_  = (max_g < max_h) ? max_h : max_g;
+    //max_  = (max_g < max_h) ? max_h : max_g;
+    max_ = max_g + max_h;
 
     return max_;
 };
@@ -128,12 +137,42 @@ void elDE::DE_rand_1_bin(int index, double F_)
 
     for (int  i = 0; i < dimension; i++)
     {
-            x_offspring[dimension*index + i] = x[dimension*r1 + i] + F_*(x[dimension*r2 +i] - x[dimension*r3 +i] );
+            x_offspring[dimension*index + i] = x[dimension*r1 + i] + F_*(x[dimension*r2 +i] - x[dimension*r3 +i]);
             check_rank(x_offspring[dimension*index + i]);
+            if(CR_s)
+                std::cout << F_*(x[dimension*r2 +i] - x[dimension*r3 +i] ) << " ";
+    }
+    if(CR_s)
+        std::cout << "\n";
+};
+
+
+double init_eps_level;
+void elDE::update_eps_level()
+{
+    if(FEs > t_FEs)
+        eps_level = 0;
+    else
+    {
+        if (FEs == population_size  || (FEs%(100*population_size) == 0)){
+            double * aux_phi = (double *)malloc(sizeof(double)*population_size);
+            for (int  i = 0; i < population_size; i++)
+              aux_phi [i] = phi[i];
+        
+            std::sort(aux_phi, aux_phi+population_size);
+            init_eps_level =  eps_level = aux_phi[int(0.8*population_size)];
+            std::cout << "Init ips level: " << init_eps_level<< "\n";
+            free(aux_phi);
+        }else
+        {
+            eps_level = init_eps_level *  std::pow(( 1 - double(FEs)/t_FEs), 5 );
+        }
     }
 };
 
 
+
+/*
 
 void elDE::update_eps_level()
 {
@@ -150,8 +189,8 @@ void elDE::update_eps_level()
         
         free(aux_phi);
     }
-};
-
+}
+*/
 
 
 double elDE::randUniform()
@@ -334,20 +373,26 @@ void elDE::run()
 
     best_f = f[0]; phi_ = phi[0]; 
     update_best();
-
     while(FEs + population_size <= maxFEs)
     {
+        FEs += population_size;
         mutation();
         crossover();
         replacement();
         selection(1);
         update_eps_level();
         mean_f(k); mean_diversity(k);sr(k); sd(k); k++;
-        FEs += population_size;
         //if(FEs > maxFEs*0.995)
         //    printPopulation();
+        //std:: cout << eps_level << "\n";
     }
     update_best();
+    cout<< "\n";
+    for (int i = 0; i < dimension; i++)
+       cout<< best_x[i]<< " ";
+    cout<< "    f: "<< best_f<< "   phi:"<< phi_<< "\n";
+    cout<< "\n\n";
+    
     write();
     //getchar();
 };
@@ -357,24 +402,46 @@ void elDE::run()
 void elDE::mutation()
 {
     for (int i = 0; i < population_size; i++)
-        DE_rand_1_bin(i,F);
+    {
+        //Generate F_i and repair its value
+        do {
+             F = randCauchy(0.5, 0.5*(double)FEs/maxFEs);
+        } while ( F <= 0.0);
 
-    //cec17_test_COP(x_offspring,f_offspring,g_offspring,h_offspring,dimension,population_size,func_num);
-    //    for (int  i = 0; i < population_size; i++)
-    //        phi_offspring[i] = constraint_violation(i,g_offspring,h_offspring);
+        if (F > 1) F = 1.0;
+        DE_rand_1_bin(i,F);
+    }
 };
 
 
 void elDE::crossover()
 {
     int j;
+
+
     for (int  index = 0; index < population_size; index++)
     {
+            //Generate CR_i and repair its value
+            if(randUniform() > 0.5)
+                  CR =  randGauss(0.1, 0.1 );
+             else
+                  CR =   randGauss(0.9, 0.1 );
+
+            if (CR > 1){ CR = 1;  CR_s = true;}
+                else if (CR < 0) CR = 0;
+
         j = randUniform()*dimension;
         for (int i = 0; i < dimension; i++)
         {
             if(randUniform() > CR and i != j )
-                x_offspring[dimension*index + i] = x[dimension*index + i];
+                x_offspring[dimension*index + i] = polynomial_mutation(x[dimension*index + i]); // x[dimension*index + i];
+            
+            else // Mutación Polinomial
+            {
+                x_offspring[dimension*index + i] = polynomial_mutation (x_offspring[dimension*index + i] );
+            }
+            //    if( abs(x_offspring[dimension*index + i] - x[dimension*index + i]) < 1e-12 )
+            //       x_offspring[dimension*index + i] = polynomial_mutation(x_offspring[dimension*index + i]);
         }   
     }    
 
@@ -417,6 +484,48 @@ double elDE::distance(double * x_, int A, int B)
    }
    return sqrt(distance/double(dimension));
 };
+
+
+
+
+double elDE::polynomial_mutation(double value)
+{
+    double eta_m = 10000000.0, rnd, delta1, delta2, mut_pow, deltaq;
+    double y, yl, yu, val, xy;
+    double temp;   
+
+    y = value;
+    temp = y;
+    yl = -nr_A[func_num-1];
+    yu = nr_A[func_num-1];
+    delta1 = (y-yl)/(yu-yl);
+    delta2 = (yu-y)/(yu-yl);
+    rnd = randUniform();
+    mut_pow = 1.0/(eta_m+1.0);
+    if (rnd <= 0.5)
+    {
+        xy = 1.0-delta1;
+        val = 2.0*rnd+(1.0-2.0*rnd)*(pow(xy,(eta_m+1.0)));
+        deltaq =  pow(val,mut_pow) - 1.0;
+    }
+    else
+    {
+        xy = 1.0-delta2;
+        val = 2.0*(1.0-rnd)+2.0*(rnd-0.5)*(pow(xy,(eta_m+1.0)));
+        deltaq = 1.0 - (pow(val,mut_pow));
+    }
+    y = y + deltaq*(yu-yl);
+    if (y<yl)
+        y = yl;
+    if (y>yu)
+        y = yu;
+
+    //cout<< abs(temp - y) << "\n";
+
+    return y;
+};
+
+
 
 
 void elDE::mean_f(int k)
@@ -463,14 +572,16 @@ void elDE::mean_diversity(int k)
 void elDE::sr(int k)
 { 
     double count = 0;
-    
-    for (int i = 0; i < population_size; i++)
-        if(phi[i] <= eps)
-            count += 1.0;
-    
-    count /= population_size;
+    bool flag = false;
 
-    SR[k] = count*100;
+    for (int i = 0; i < population_size && !flag; i++)
+        if(phi[i] <= eps)
+            flag = true;
+    
+    //count += 1.0;
+    //count /= population_size;
+
+    SR[k] = flag; //count*100;
 };
 
 

@@ -30,10 +30,10 @@ protected:
     std::vector <int> penalized;
 
 
-    void mutation();
-    void crossover();
-    void selection(bool);
-    void replacement();
+    virtual void mutation();
+    virtual void crossover();
+    virtual void selection(bool);
+    virtual void replacement();
     void updateDt();
     void setUnionToCurrent();
     

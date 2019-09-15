@@ -1,0 +1,9 @@
+Best:   1e-06
+Median: 6e-06
+c:      [0,0,0]
+v:      0
+Mean:   8.88e-06
+Worst:  3.1e-05
+STD:    7.73729e-06
+SR:     100
+vio:    0
